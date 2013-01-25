@@ -1,0 +1,6 @@
+development.db
+config/*.yml
+public/userdata/*.png
+*.db
+*.serial
+log

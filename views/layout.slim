@@ -1,0 +1,37 @@
+doctype html
+html
+  head
+    title Бесплатные звонки
+    meta name="keywords" content="Бесплатные звонки по Москве и Петербургу"
+    meta name="description" content="Бесплатные звонки"
+    meta name="robots" content="index, follow"
+
+    meta name="viewport" content="width=device-width, initial-scale=1.0"
+    meta name="author" content="2Niversity"
+
+    link rel="icon" href="/img/favicon.ico"
+
+    link rel="stylesheet" href="/css/bootstrap.min.css"
+    link rel="stylesheet" href="/css/bootstrap-responsive.min.css"
+    link rel="stylesheet" href="/css/app.css"
+
+    script src="/js/jquery-1.7.2.min.js"
+    script src="/js/bootstrap.min.js"
+    script src="/js/app.js"
+
+  body
+    .container-fluid
+      == yield_content :nav
+
+      #main
+        .row-fluid
+          - if flash
+            - flash.keys.each do |type|
+              div.alert class="alert-#{type}"
+                a.close data-dismiss="alert" href="#"
+                  | ×
+                =flash[type]
+
+        == yield
+
+    == slim :footer

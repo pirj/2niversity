@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+require 'bundler'
+require 'fiber'
+Bundler.require
+
+#Dir['models/*.rb'].each { |file| require File.join Dir.pwd, file }
+
+DataMapper.setup(:default, ENV['DATABASE_URL'] || "sqlite://#{Dir.pwd}/development.db")
+DataMapper.finalize
+
+module CallListener
+
+  def post_init
+    puts "Incoming call"
+
+    Fiber.new do
+      connection_headers = command('connect')
+      caller_uuid = connection_headers['Caller-Unique-ID']
+
+      command("events plain all")
+      command("filter Core-UUID #{caller_uuid}")
+      command("filter Event-Name CHANNEL_ANSWER")
+      command("filter Event-Name CHANNEL_HANGUP")
+
+      call_to = connection_headers['Channel-Destination-Number'][5..-1]
+
+      puts "Bridging #{caller_uuid} with #{call_to}"
+      bridge("sofia/external/sip:#{call_to}@sip.zadarma.com")
+
+      loop do
+        event_headers = Fiber.yield
+        if event_headers['Content-Type'] == "text/disconnect-notice"
+          break
+        elsif event_headers['Event-Name'] == "CHANNEL_HANGUP"
+          break
+        end
+      end
+
+      close_connection_after_writing
+    end.resume
+  end
+
+  def bridge phone
+  command <<-BRIDGE
+sendmsg
+call-command: execute
+execute-app-name: bridge
+execute-app-arg: #{phone}\n\n
+BRIDGE
+  end
+
+  def command data
+    send_data "#{data}\n\n"
+
+    @current_fiber = Fiber.current
+    Fiber.yield
+  end
+
+  def receive_data data
+    headers = data.split(/\n/).inject({}) do |hash, row|
+      ri = row.index(': ')
+      hash[row[0..(ri-1)]] = row[(ri+2)..-1] unless ri.nil?
+      hash
+    end
+    content_length = Integer(headers['Content-Length']) rescue nil
+    headers['Body'] = content_length ? data[(data.size-content_length)..-1] : ''
+    @current_fiber.resume headers if @current_fiber && @current_fiber.alive?
+  end
+end
+
+begin
+  EM.run do
+    EventMachine.start_server '127.0.0.1', 8084, CallListener
+  end
+rescue StandardError => e
+  puts ["Unhandled exception in EM loop, restarting", e.message, e.backtrace].join('\n')
+  retry
+rescue Exception => e
+  puts ["Unhandled FATAL exception in EM loop", e.message, e.backtrace].join('\n')
+end
