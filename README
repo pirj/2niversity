@@ -1,0 +1,35 @@
+gem install vagrant
+
+vagrant box add 2niversity http://files.vagrantup.com/lucid32.box
+vagrant init 2niversity
+# Расскоментировать строку
+# config.vm.forward_port 3000, 3000
+vagrant reload
+vagrant up
+vagrant ssh
+
+sudo apt-get update
+sudo apt-get install python-software-properties
+sudo add-apt-repository ppa:freeswitch-drivers/freeswitch-nightly-drivers
+sudo apt-get update
+sudo apt-get install freeswitch freeswitch-lang-en freeswitch-sounds-en-us-callie-8000 git-core curl make tmux
+
+curl -L https://get.rvm.io | bash -s stable --ruby
+
+source /home/vagrant/.rvm/scripts/rvm
+rvm use --default 1.9.3
+
+git clone git://github.com/pirj/2niversity
+cd 2niversity
+bundle
+mkdir log
+cp config/email.yml.example config/email.yml
+cp config/security.yml.example config/security.yml
+
+tmux
+thin start
+<C-b>c
+./calls
+<C-b>c
+sudo ./fs
+
