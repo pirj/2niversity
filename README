@@ -4,6 +4,8 @@ vagrant box add 2niversity http://files.vagrantup.com/lucid32.box
 vagrant init 2niversity
 # Расскоментировать строку
 # config.vm.forward_port 3000, 3000
+# config.vm.forward_port 1935, 1935
+
 vagrant reload
 vagrant up
 vagrant ssh
